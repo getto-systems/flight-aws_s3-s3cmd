@@ -1,0 +1,26 @@
+#!/bin/bash
+
+flight_aws_s3_copy(){
+  local bucket=$1; shift
+
+  local access_key=$(echo "$S3_KEY" | jq ".access" -r)
+  local secret_key=$(echo "$S3_KEY" | jq ".secret" -r)
+
+  local info
+  local path
+  local file
+
+  _ifs=$IFS
+  IFS=$'\n'
+  for info in $(echo "$FLIGHT_DATA" | jq ".data[].properties" -c); do
+    IFS=$_ifs
+    path=$(echo "$info" | jq ".path" -r)
+    file=$(echo "$info" | jq ".name" -r)
+    s3cmd --access_key=$access_key --secret_key=$secret_key -q put "$file" "s3://$bucket/$path"
+  done
+
+  echo $FLIGHT_DATA
+}
+
+action=$1; shift
+flight_aws_s3_$action "$@"
