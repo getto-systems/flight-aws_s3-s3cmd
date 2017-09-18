@@ -1,7 +1,9 @@
 #!/bin/bash
 
 flight_aws_s3_copy(){
-  local bucket=$1; shift
+  local opts=$1; shift
+
+  local bucket=$(echo "$opts" | jq ".bucket" -r)
 
   local access_key=$(echo "$S3_KEY" | jq ".access" -r)
   local secret_key=$(echo "$S3_KEY" | jq ".secret" -r)
