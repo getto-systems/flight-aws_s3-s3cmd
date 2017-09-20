@@ -3,29 +3,38 @@
 flight_aws_s3_copy(){
   local opts=$1; shift
 
-  local bucket=$(echo "$opts" | jq ".bucket" -r)
-  local work_path=$(echo "$opts" | jq ".path" -r)
-
   local access_key=$(echo "$S3_KEY" | jq ".access" -r)
   local secret_key=$(echo "$S3_KEY" | jq ".secret" -r)
 
+  local _ifs
   local info
-  local bucket_path
-  local file
+  local kind
+  local name
+  local bucket
+  local path
   local local_file
 
   _ifs=$IFS
   IFS=$'\n'
   for info in $(echo "$FLIGHT_DATA" | jq ".data[].properties" -c); do
     IFS=$_ifs
-    path=$(echo "$info" | jq ".path" -r)
-    file=$(echo "$info" | jq ".name" -r)
-    local_file=$work_path/$file
-    if [ -f "$local_file" ]; then
-      s3cmd --access_key=$access_key --secret_key=$secret_key -q put "$local_file" "s3://$bucket/$path"
-    else
-      >&2 echo "file not found: $local_file"
-    fi
+
+    kind=$(echo "$info" | jq ".kind" -r)
+    name=$(echo "$info" | jq ".name" -r)
+    bucket=$(echo "$info" | jq ".bucket" -r)
+
+    _ifs=$IFS
+    IFS=$'\n'
+    for path in $(echo "$opts" | jq ".path[]" -c); do
+      IFS=$_ifs
+
+      local_file=$path/$name
+      if [ -f "$local_file" ]; then
+        s3cmd --access_key=$access_key --secret_key=$secret_key -q put "$local_file" "s3://$bucket/$kind/$path/$name"
+      else
+        >&2 echo "file not found: $local_file"
+      fi
+    done
   done
 
   echo $FLIGHT_DATA
