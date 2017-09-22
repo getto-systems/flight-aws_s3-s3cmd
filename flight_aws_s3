@@ -16,7 +16,7 @@ flight_aws_s3_copy(){
 
   _ifs=$IFS
   IFS=$'\n'
-  for info in $(echo "$FLIGHT_DATA" | jq ".data[].properties" -c); do
+  for info in $(echo "$FLIGHT_DATA" | jq ".[]" -c); do
     IFS=$_ifs
 
     kind=$(echo "$info" | jq ".kind" -r)
@@ -25,15 +25,15 @@ flight_aws_s3_copy(){
 
     _ifs=$IFS
     IFS=$'\n'
-    for path in $(echo "$opts" | jq ".path[]" -c); do
+    for path in $(echo "$opts" | jq ".path[]" -cr); do
       IFS=$_ifs
 
       local_file=$path/$name
-      if [ -f "$local_file" ]; then
-        s3cmd --access_key=$access_key --secret_key=$secret_key -q put "$local_file" "s3://$bucket/$kind/$path/$name"
-      else
-        >&2 echo "file not found: $local_file"
+      if [ ! -f "$local_file" ]; then
+        echo "file not found: $local_file"
+        exit 104
       fi
+      s3cmd --access_key=$access_key --secret_key=$secret_key -q put "$local_file" "s3://$bucket/$kind/$path/$name"
     done
   done
 
